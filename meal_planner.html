@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daily Kitchen Planner</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,600;1,300&family=DM+Sans:wght@300;400;500&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --sage: #7A8C6E;
+    --sage-light: #B5C4A8;
+    --sage-pale: #EDF1E9;
+    --ink: #1C2218;
+    --warm-white: #F7F6F2;
+    --clay: #C4714A;
+    --clay-light: #F0DDD3;
+    --gold: #C8A84B;
+    --muted: #8A9080;
+    --border: #D6DDD0;
+    --card: #FFFFFF;
+    --font-display: 'Fraunces', Georgia, serif;
+    --font-body: 'DM Sans', system-ui, sans-serif;
+  }
+
+  body {
+    font-family: var(--font-body);
+    background: var(--warm-white);
+    color: var(--ink);
+    min-height: 100vh;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: var(--ink);
+    padding: 20px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .logo {
+    font-family: var(--font-display);
+    font-weight: 300;
+    font-size: 1.4rem;
+    color: var(--warm-white);
+    letter-spacing: 0.02em;
+  }
+  .logo span { color: var(--sage-light); font-style: italic; }
+  .header-tag {
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 500;
+  }
+
+  /* ── LAYOUT ── */
+  .app {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+  }
+
+  /* ── INTAKE PANEL ── */
+  .intake-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(28,34,24,0.06);
+  }
+  .intake-hero {
+    background: linear-gradient(135deg, var(--sage) 0%, #5A6B52 100%);
+    padding: 32px 36px 28px;
+  }
+  .intake-hero h1 {
+    font-family: var(--font-display);
+    font-weight: 300;
+    font-size: 2rem;
+    color: #fff;
+    line-height: 1.2;
+    margin-bottom: 8px;
+  }
+  .intake-hero p {
+    color: rgba(255,255,255,0.75);
+    font-size: 0.9rem;
+    font-weight: 300;
+  }
+
+  .intake-body { padding: 32px 36px; }
+
+  .field-group { margin-bottom: 22px; }
+  label {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  input[type="text"], input[type="number"], textarea, select {
+    width: 100%;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 11px 14px;
+    font-family: var(--font-body);
+    font-size: 0.92rem;
+    color: var(--ink);
+    background: var(--warm-white);
+    transition: border-color 0.2s;
+    outline: none;
+  }
+  input[type="text"]:focus, input[type="number"]:focus, textarea:focus, select:focus {
+    border-color: var(--sage);
+    background: #fff;
+  }
+  textarea { resize: vertical; min-height: 80px; }
+
+  .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+  /* pill toggles */
+  .pill-group { display: flex; flex-wrap: wrap; gap: 8px; }
+  .pill {
+    border: 1.5px solid var(--border);
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 0.83rem;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.18s;
+    background: transparent;
+    color: var(--ink);
+  }
+  .pill:hover { border-color: var(--sage); color: var(--sage); }
+  .pill.active { background: var(--sage); border-color: var(--sage); color: #fff; }
+
+  .generate-btn {
+    width: 100%;
+    background: var(--clay);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    padding: 15px;
+    font-family: var(--font-body);
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: background 0.2s, transform 0.1s;
+    letter-spacing: 0.02em;
+  }
+  .generate-btn:hover { background: #b5633f; }
+  .generate-btn:active { transform: scale(0.99); }
+  .generate-btn:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; transform: none; }
+
+  /* ── LOADING ── */
+  .loading-state {
+    display: none;
+    text-align: center;
+    padding: 60px 24px;
+  }
+  .loading-state.show { display: block; }
+  .spinner {
+    width: 44px; height: 44px;
+    border: 3px solid var(--border);
+    border-top-color: var(--sage);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 20px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-state p {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 300;
+    font-size: 1.1rem;
+    color: var(--muted);
+  }
+
+  /* ── RESULTS ── */
+  #results { display: none; margin-top: 28px; }
+  #results.show { display: block; }
+
+  .results-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .results-header h2 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 1.5rem;
+  }
+  .reset-btn {
+    background: none;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 7px 14px;
+    font-size: 0.82rem;
+    cursor: pointer;
+    color: var(--muted);
+    font-family: var(--font-body);
+    transition: all 0.18s;
+  }
+  .reset-btn:hover { border-color: var(--clay); color: var(--clay); }
+
+  /* sections grid */
+  .sections-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .section-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+  .section-card.full { grid-column: 1 / -1; }
+  .section-header {
+    padding: 14px 20px 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .section-icon { font-size: 1.1rem; }
+  .section-title {
+    font-size: 0.78rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-weight: 500;
+    color: var(--muted);
+  }
+  .section-body {
+    padding: 18px 20px;
+    font-size: 0.9rem;
+    line-height: 1.7;
+    color: var(--ink);
+    white-space: pre-wrap;
+  }
+
+  /* budget badge */
+  .budget-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    border-radius: 20px;
+    padding: 4px 12px;
+    margin-left: auto;
+  }
+  .budget-badge.green { background: var(--sage-pale); color: var(--sage); }
+  .budget-badge.yellow { background: #FFF8E6; color: #A07820; }
+  .budget-badge.red { background: var(--clay-light); color: var(--clay); }
+
+  /* todo list styling */
+  .todo-list { list-style: none; }
+  .todo-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.9rem;
+  }
+  .todo-list li:last-child { border-bottom: none; }
+  .todo-check {
+    width: 18px; height: 18px;
+    border: 1.5px solid var(--border);
+    border-radius: 5px;
+    flex-shrink: 0;
+    margin-top: 2px;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .todo-check:hover { border-color: var(--sage); }
+  .todo-check.checked { background: var(--sage); border-color: var(--sage); }
+  .todo-check.checked::after { content: '✓'; color: #fff; font-size: 0.7rem; }
+  .todo-text { flex: 1; }
+  .todo-text.done { text-decoration: line-through; color: var(--muted); }
+
+  /* meal cards */
+  .meal-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .meal-row:last-child { border-bottom: none; }
+  .meal-label {
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-weight: 500;
+    color: var(--muted);
+    width: 64px;
+    flex-shrink: 0;
+    padding-top: 2px;
+  }
+  .meal-name { font-size: 0.92rem; color: var(--ink); font-weight: 400; }
+
+  @media (max-width: 600px) {
+    .sections-grid { grid-template-columns: 1fr; }
+    .section-card.full { grid-column: 1; }
+    .row-2, .row-3 { grid-template-columns: 1fr; }
+    .intake-hero { padding: 24px 20px 20px; }
+    .intake-body { padding: 24px 20px; }
+    header { padding: 16px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Daily <span>Kitchen</span></div>
+  <div class="header-tag">Meal Planner</div>
+</header>
+
+<div class="app">
+
+  <!-- INTAKE FORM -->
+  <div class="intake-card" id="intakeCard">
+    <div class="intake-hero">
+      <h1>What does your day look like?</h1>
+      <p>Tell us your schedule, pantry, and preferences — we'll handle the rest.</p>
+    </div>
+    <div class="intake-body">
+
+      <div class="row-2">
+        <div class="field-group">
+          <label>Your Name (optional)</label>
+          <input type="text" id="userName" placeholder="e.g. Priya">
+        </div>
+        <div class="field-group">
+          <label>Weekly grocery budget (₹ or $)</label>
+          <input type="number" id="budget" placeholder="e.g. 1500" min="0">
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label>Describe your day</label>
+        <textarea id="dayDesc" placeholder="e.g. Work from home until 3pm, then picking up kids. Pretty hectic morning. Want something light for lunch."></textarea>
+      </div>
+
+      <div class="field-group">
+        <label>What's already in your pantry?</label>
+        <textarea id="pantry" placeholder="e.g. rice, onions, tomatoes, eggs, dal, bread, olive oil, basic spices..." style="min-height:64px"></textarea>
+      </div>
+
+      <div class="field-group">
+        <label>Dietary preferences</label>
+        <div class="pill-group" id="dietPills">
+          <div class="pill" data-val="vegetarian">🥦 Vegetarian</div>
+          <div class="pill" data-val="vegan">🌱 Vegan</div>
+          <div class="pill" data-val="gluten-free">🌾 Gluten-Free</div>
+          <div class="pill" data-val="high-protein">💪 High Protein</div>
+          <div class="pill" data-val="low-carb">🥗 Low Carb</div>
+          <div class="pill" data-val="dairy-free">🥛 Dairy-Free</div>
+          <div class="pill" data-val="no-restriction">No restriction</div>
+        </div>
+      </div>
+
+      <div class="row-3">
+        <div class="field-group">
+          <label>Cooking skill</label>
+          <select id="skill">
+            <option value="beginner">Beginner</option>
+            <option value="intermediate" selected>Intermediate</option>
+            <option value="advanced">Advanced</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label>Household size</label>
+          <input type="number" id="people" value="2" min="1" max="20">
+        </div>
+        <div class="field-group">
+          <label>Max cook time (mins)</label>
+          <input type="number" id="cookTime" placeholder="e.g. 30" min="5" max="180">
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label>Any allergies or dislikes?</label>
+        <input type="text" id="avoid" placeholder="e.g. nuts, mushrooms, spicy food">
+      </div>
+
+      <div class="loading-state" id="loadingState">
+        <div class="spinner"></div>
+        <p>Crafting your kitchen plan…</p>
+      </div>
+
+      <button class="generate-btn" id="generateBtn" onclick="generatePlan()">
+        Build My Day's Meal Plan →
+      </button>
+
+    </div>
+  </div>
+
+  <!-- RESULTS -->
+  <div id="results">
+    <div class="results-header">
+      <h2 id="resultsTitle">Your Kitchen Plan</h2>
+      <button class="reset-btn" onclick="resetForm()">← Start Over</button>
+    </div>
+
+    <div class="sections-grid">
+
+      <!-- Meals -->
+      <div class="section-card full" id="mealsCard">
+        <div class="section-header">
+          <span class="section-icon">🍽️</span>
+          <span class="section-title">Meal Plan</span>
+        </div>
+        <div class="section-body" id="mealsBody"></div>
+      </div>
+
+      <!-- Grocery List -->
+      <div class="section-card" id="groceryCard">
+        <div class="section-header">
+          <span class="section-icon">🛒</span>
+          <span class="section-title">Grocery List</span>
+        </div>
+        <div class="section-body" id="groceryBody"></div>
+      </div>
+
+      <!-- Substitutions -->
+      <div class="section-card" id="subsCard">
+        <div class="section-header">
+          <span class="section-icon">🔄</span>
+          <span class="section-title">Substitutions</span>
+        </div>
+        <div class="section-body" id="subsBody"></div>
+      </div>
+
+      <!-- Budget -->
+      <div class="section-card full" id="budgetCard">
+        <div class="section-header">
+          <span class="section-icon">💰</span>
+          <span class="section-title">Budget Analysis</span>
+          <div class="budget-badge" id="budgetBadge"></div>
+        </div>
+        <div class="section-body" id="budgetBody"></div>
+      </div>
+
+      <!-- Cooking To-Do -->
+      <div class="section-card full" id="todoCard">
+        <div class="section-header">
+          <span class="section-icon">✅</span>
+          <span class="section-title">Cooking To-Do List</span>
+        </div>
+        <div class="section-body" id="todoBody"></div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // Diet pill toggles
+  document.querySelectorAll('#dietPills .pill').forEach(p => {
+    p.addEventListener('click', () => {
+      if (p.dataset.val === 'no-restriction') {
+        document.querySelectorAll('#dietPills .pill').forEach(x => x.classList.remove('active'));
+        p.classList.add('active');
+      } else {
+        document.querySelector('[data-val="no-restriction"]')?.classList.remove('active');
+        p.classList.toggle('active');
+      }
+    });
+  });
+
+  function getSelectedDiet() {
+    return [...document.querySelectorAll('#dietPills .pill.active')]
+      .map(p => p.dataset.val)
+      .join(', ') || 'no specific restriction';
+  }
+
+  async function generatePlan() {
+    const btn = document.getElementById('generateBtn');
+    const loading = document.getElementById('loadingState');
+    const dayDesc = document.getElementById('dayDesc').value.trim();
+
+    if (!dayDesc) {
+      document.getElementById('dayDesc').focus();
+      document.getElementById('dayDesc').style.borderColor = 'var(--clay)';
+      return;
+    }
+    document.getElementById('dayDesc').style.borderColor = '';
+
+    btn.disabled = true;
+    loading.classList.add('show');
+    document.getElementById('results').classList.remove('show');
+
+    const userName = document.getElementById('userName').value.trim();
+    const budget = document.getElementById('budget').value;
+    const pantry = document.getElementById('pantry').value.trim();
+    const diet = getSelectedDiet();
+    const skill = document.getElementById('skill').value;
+    const people = document.getElementById('people').value;
+    const cookTime = document.getElementById('cookTime').value;
+    const avoid = document.getElementById('avoid').value.trim();
+
+    const budgetStr = budget ? `Budget: ${budget} (local currency, weekly)` : 'No specific budget mentioned';
+    const cookTimeStr = cookTime ? `Max cook time per meal: ${cookTime} minutes` : 'No time limit';
+    const avoidStr = avoid ? `Avoid: ${avoid}` : 'None';
+    const pantryStr = pantry || 'Not specified';
+    const nameStr = userName || 'the user';
+
+    const prompt = `You are a friendly personal chef and meal planner. Based on the following profile, generate a complete meal plan and cooking to-do list for ${nameStr}'s day.
+
+Day description: ${dayDesc}
+Dietary preferences: ${diet}
+Cooking skill: ${skill}
+Household size: ${people} people
+${cookTimeStr}
+Pantry items: ${pantryStr}
+Allergies/dislikes: ${avoidStr}
+${budgetStr}
+
+Respond ONLY with a valid JSON object (no markdown, no explanation) in this exact structure:
+{
+  "breakfast": { "name": "Dish name", "description": "1-2 sentence description" },
+  "lunch": { "name": "Dish name", "description": "1-2 sentence description" },
+  "dinner": { "name": "Dish name", "description": "1-2 sentence description" },
+  "grocery_list": ["item 1 with quantity", "item 2 with quantity"],
+  "pantry_already_have": ["item from pantry being used"],
+  "substitutions": [
+    { "original": "ingredient", "sub": "substitute", "reason": "why" }
+  ],
+  "budget_estimate": "estimated cost for what needs to be bought",
+  "budget_feasible": "yes|stretch|no",
+  "budget_notes": "2-3 sentences on budget feasibility and tips",
+  "todo_list": [
+    { "time": "Morning / Before lunch / Evening", "task": "specific cooking task" }
+  ],
+  "tip": "One personalized kitchen tip for the day"
+}`;
+
+    try {
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "anthropic-version": "2023-06-01",
+          "anthropic-dangerous-direct-browser-access": "true"
+        },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-6",
+          max_tokens: 2000,
+          messages: [{ role: "user", content: prompt }]
+        })
+      });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData?.error?.message || `API error ${response.status}`);
+      }
+
+      const data = await response.json();
+      const text = data.content?.map(i => i.text || '').join('') || '';
+      const clean = text.replace(/```json[\s\S]*?```|```[\s\S]*?```/g, m => m.replace(/```json|```/g, '')).trim();
+      const plan = JSON.parse(clean);
+      renderResults(plan, userName, budget);
+    } catch (err) {
+      loading.classList.remove('show');
+      btn.disabled = false;
+      alert(`Something went wrong: ${err.message || 'Please try again.'}`);
+      console.error(err);
+    }
+  }
+
+  function renderResults(plan, name, budget) {
+    // Title
+    document.getElementById('resultsTitle').textContent =
+      name ? `${name}'s Kitchen Plan` : 'Your Kitchen Plan';
+
+    // Meals
+    const mealsHtml = `
+      <div class="meal-row">
+        <div class="meal-label">Breakfast</div>
+        <div><div class="meal-name"><strong>${plan.breakfast.name}</strong></div><div style="color:var(--muted);font-size:0.85rem;margin-top:3px">${plan.breakfast.description}</div></div>
+      </div>
+      <div class="meal-row">
+        <div class="meal-label">Lunch</div>
+        <div><div class="meal-name"><strong>${plan.lunch.name}</strong></div><div style="color:var(--muted);font-size:0.85rem;margin-top:3px">${plan.lunch.description}</div></div>
+      </div>
+      <div class="meal-row">
+        <div class="meal-label">Dinner</div>
+        <div><div class="meal-name"><strong>${plan.dinner.name}</strong></div><div style="color:var(--muted);font-size:0.85rem;margin-top:3px">${plan.dinner.description}</div></div>
+      </div>
+      ${plan.tip ? `<div style="margin-top:14px;padding:12px 16px;background:var(--sage-pale);border-radius:10px;font-size:0.85rem;color:var(--sage);"><strong>💡 Chef's tip:</strong> ${plan.tip}</div>` : ''}
+    `;
+    document.getElementById('mealsBody').innerHTML = mealsHtml;
+
+    // Grocery
+    let groceryHtml = '<ul class="todo-list">';
+    (plan.grocery_list || []).forEach((item, i) => {
+      groceryHtml += `<li>
+        <div class="todo-check" id="gc${i}" onclick="toggleCheck('gc${i}', 'gt${i}')"></div>
+        <div class="todo-text" id="gt${i}">${item}</div>
+      </li>`;
+    });
+    groceryHtml += '</ul>';
+    if (plan.pantry_already_have?.length) {
+      groceryHtml += `<div style="margin-top:14px;padding:10px 14px;background:var(--sage-pale);border-radius:8px;font-size:0.82rem;color:var(--sage)">
+        <strong>✓ Already in pantry:</strong> ${plan.pantry_already_have.join(', ')}
+      </div>`;
+    }
+    document.getElementById('groceryBody').innerHTML = groceryHtml;
+
+    // Substitutions
+    if (plan.substitutions?.length) {
+      let subsHtml = '';
+      plan.substitutions.forEach(s => {
+        subsHtml += `<div style="padding:8px 0;border-bottom:1px solid var(--border)">
+          <div style="font-size:0.88rem"><strong>${s.original}</strong> → <span style="color:var(--sage)">${s.sub}</span></div>
+          <div style="font-size:0.8rem;color:var(--muted);margin-top:2px">${s.reason}</div>
+        </div>`;
+      });
+      document.getElementById('subsBody').innerHTML = subsHtml;
+    } else {
+      document.getElementById('subsBody').innerHTML = '<p style="color:var(--muted);font-size:0.88rem">No substitutions needed — your pantry is well stocked!</p>';
+    }
+
+    // Budget
+    const badge = document.getElementById('budgetBadge');
+    const feasible = (plan.budget_feasible || 'yes').toLowerCase();
+    if (feasible === 'yes') {
+      badge.className = 'budget-badge green';
+      badge.textContent = '✓ Within budget';
+    } else if (feasible === 'stretch') {
+      badge.className = 'budget-badge yellow';
+      badge.textContent = '⚠ Slight stretch';
+    } else {
+      badge.className = 'budget-badge red';
+      badge.textContent = '✗ Over budget';
+    }
+
+    document.getElementById('budgetBody').innerHTML = `
+      ${plan.budget_estimate ? `<div style="font-family:var(--font-display);font-size:1.5rem;font-weight:600;margin-bottom:10px">${plan.budget_estimate} <span style="font-size:0.9rem;font-weight:300;font-style:italic;color:var(--muted)">estimated grocery cost</span></div>` : ''}
+      <p style="font-size:0.88rem">${plan.budget_notes || ''}</p>
+    `;
+
+    // To-Do List
+    if (plan.todo_list?.length) {
+      let todoHtml = '<ul class="todo-list">';
+      plan.todo_list.forEach((item, i) => {
+        todoHtml += `<li>
+          <div class="todo-check" id="tc${i}" onclick="toggleCheck('tc${i}', 'tt${i}')"></div>
+          <div class="todo-text" id="tt${i}"><span style="font-size:0.75rem;color:var(--muted);margin-right:6px;text-transform:uppercase;letter-spacing:0.06em">${item.time}</span>${item.task}</div>
+        </li>`;
+      });
+      todoHtml += '</ul>';
+      document.getElementById('todoBody').innerHTML = todoHtml;
+    }
+
+    // Show
+    document.getElementById('loadingState').classList.remove('show');
+    document.getElementById('generateBtn').disabled = false;
+    document.getElementById('results').classList.add('show');
+    document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function toggleCheck(checkId, textId) {
+    const check = document.getElementById(checkId);
+    const text = document.getElementById(textId);
+    check.classList.toggle('checked');
+    text.classList.toggle('done');
+  }
+
+  function resetForm() {
+    document.getElementById('results').classList.remove('show');
+    document.getElementById('intakeCard').scrollIntoView({ behavior: 'smooth' });
+    document.getElementById('dayDesc').value = '';
+  }
+</script>
+</body>
+</html>
