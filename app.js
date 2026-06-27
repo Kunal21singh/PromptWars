@@ -1,15 +1,14 @@
 // ChefFlow AI — Application State & API Integration
 
 // =========================================================================
-// CONFIGURATION: Paste your Gemini API key here to hardcode it in the script.
-// Example: const HARDCODED_API_KEY = 'AIzaSyYourKeyHere...';
-// If left empty, the app will fall back to using the settings panel.
-const HARDCODED_API_KEY = 'AQ.Ab8RN6LefsD1UamW-HgmjSHT06ZBf3iBYm9OLa-Kyl0GhS7FiA';
+// CONFIGURATION: The Gemini API key should be entered by the user at runtime.
+// Storing it in the browser is acceptable for client-side demos but never hardcode secrets in source files.
+const HARDCODED_API_KEY = '';
 // =========================================================================
 
 // INITIAL STATE
 let state = {
-    apiKey: HARDCODED_API_KEY || localStorage.getItem('chefflow_api_key') || '',
+    apiKey: localStorage.getItem('chefflow_api_key') || HARDCODED_API_KEY || '',
     model: localStorage.getItem('chefflow_model') || 'gemini-1.5-flash-latest',
     mealData: null,
     checkedTodos: {},
@@ -145,8 +144,9 @@ async function testApiKey() {
     showKeyStatus('Testing API Key connectivity...', 'loading');
     
     try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelSelect.value}:generateContent?key=${key}`, {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelSelect.value)}:generateContent?key=${encodeURIComponent(key)}`, {
             method: 'POST',
+            credentials: 'omit',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 contents: [{ parts: [{ text: "Respond with only the word 'Success'" }] }]
@@ -498,18 +498,41 @@ function renderDashboard() {
         substitutions.forEach(sub => {
             const card = document.createElement('div');
             card.className = 'sub-card';
-            card.innerHTML = `
-                <div class="sub-swap-row">
-                    <span class="sub-original">${sub.original || ''}</span>
-                    <span class="sub-arrow">➔</span>
-                    <span class="sub-replace">${sub.substitutedWith || ''}</span>
-                </div>
-                <div class="sub-reason">${sub.reason || ''}</div>
-            `;
+
+            const swapRow = document.createElement('div');
+            swapRow.className = 'sub-swap-row';
+
+            const originalText = document.createElement('span');
+            originalText.className = 'sub-original';
+            originalText.textContent = sub.original || '';
+            swapRow.appendChild(originalText);
+
+            const arrow = document.createElement('span');
+            arrow.className = 'sub-arrow';
+            arrow.textContent = '➔';
+            swapRow.appendChild(arrow);
+
+            const replacedText = document.createElement('span');
+            replacedText.className = 'sub-replace';
+            replacedText.textContent = sub.substitutedWith || '';
+            swapRow.appendChild(replacedText);
+
+            const reason = document.createElement('div');
+            reason.className = 'sub-reason';
+            reason.textContent = sub.reason || '';
+
+            card.appendChild(swapRow);
+            card.appendChild(reason);
             subList.appendChild(card);
         });
     } else {
-        subList.innerHTML = '<div class="sub-card"><div class="sub-reason">No substitutions needed. Ingredients are standard pantry staples!</div></div>';
+        const card = document.createElement('div');
+        card.className = 'sub-card';
+        const reason = document.createElement('div');
+        reason.className = 'sub-reason';
+        reason.textContent = 'No substitutions needed. Ingredients are standard pantry staples!';
+        card.appendChild(reason);
+        subList.appendChild(card);
     }
 
     // Reveal Dashboard
@@ -587,26 +610,36 @@ function renderTodoTimeline(todoList) {
             const itemEl = document.createElement('div');
             itemEl.className = `todo-item ${isChecked ? 'checked' : ''}`;
             itemEl.dataset.idx = item.index;
-            
-            itemEl.innerHTML = `
-                <div class="custom-checkbox-wrapper">
-                    <input type="checkbox" class="todo-checkbox" ${isChecked ? 'checked' : ''} aria-label="Mark task done">
-                </div>
-                <span class="todo-text">${item.step}</span>
-                <span class="todo-meal-tag">${item.associatedMeal || 'Prep'}</span>
-            `;
+
+            const checkboxWrapper = document.createElement('div');
+            checkboxWrapper.className = 'custom-checkbox-wrapper';
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.className = 'todo-checkbox';
+            checkbox.checked = isChecked;
+            checkbox.setAttribute('aria-label', 'Mark task done');
+            checkboxWrapper.appendChild(checkbox);
+
+            const stepText = document.createElement('span');
+            stepText.className = 'todo-text';
+            stepText.textContent = item.step || '';
+
+            const mealTag = document.createElement('span');
+            mealTag.className = 'todo-meal-tag';
+            mealTag.textContent = item.associatedMeal || 'Prep';
+
+            itemEl.appendChild(checkboxWrapper);
+            itemEl.appendChild(stepText);
+            itemEl.appendChild(mealTag);
 
             // Toggle Event
             itemEl.addEventListener('click', (e) => {
-                // Prevent duplicate trigger if clicking checkbox directly
                 if (e.target.tagName === 'INPUT') return;
-                
-                const cb = itemEl.querySelector('input');
-                cb.checked = !cb.checked;
-                toggleTodoChecked(item.index, cb.checked, itemEl);
+                checkbox.checked = !checkbox.checked;
+                toggleTodoChecked(item.index, checkbox.checked, itemEl);
             });
 
-            const checkbox = itemEl.querySelector('input');
             checkbox.addEventListener('change', () => {
                 toggleTodoChecked(item.index, checkbox.checked, itemEl);
             });
@@ -700,46 +733,60 @@ function renderGroceryList(groceryItems) {
             itemEl.className = `grocery-item ${isChecked ? 'checked' : ''}`;
             itemEl.dataset.key = item.index;
 
-            let deleteBtnHtml = '';
+            const checkboxWrapper = document.createElement('div');
+            checkboxWrapper.className = 'custom-checkbox-wrapper';
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.className = 'grocery-checkbox';
+            checkbox.checked = isChecked;
+            checkbox.setAttribute('aria-label', 'Check item');
+            checkboxWrapper.appendChild(checkbox);
+
+            const details = document.createElement('div');
+            details.className = 'grocery-item-details';
+
+            const nameEl = document.createElement('span');
+            nameEl.className = 'grocery-item-name';
+            nameEl.textContent = item.name || '';
+            details.appendChild(nameEl);
+
+            const qtyEl = document.createElement('span');
+            qtyEl.className = 'grocery-qty';
+            qtyEl.textContent = item.quantity || '';
+            details.appendChild(qtyEl);
+
+            const costEl = document.createElement('span');
+            costEl.className = 'grocery-cost';
+            costEl.textContent = item.estimatedCost ? `$${item.estimatedCost.toFixed(2)}` : '—';
+            details.appendChild(costEl);
+
+            itemEl.appendChild(checkboxWrapper);
+            itemEl.appendChild(details);
+
             if (item.type === 'custom') {
-                deleteBtnHtml = `
-                    <button class="delete-grocery-item" title="Delete custom item">&times;</button>
-                `;
-            }
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'delete-grocery-item';
+                deleteBtn.type = 'button';
+                deleteBtn.title = 'Delete custom item';
+                deleteBtn.textContent = '×';
+                itemEl.appendChild(deleteBtn);
 
-            itemEl.innerHTML = `
-                <div class="custom-checkbox-wrapper">
-                    <input type="checkbox" class="grocery-checkbox" ${isChecked ? 'checked' : ''} aria-label="Check item">
-                </div>
-                <div class="grocery-item-details">
-                    <span class="grocery-item-name">${item.name}</span>
-                    <span class="grocery-qty">${item.quantity || ''}</span>
-                    <span class="grocery-cost">${item.estimatedCost ? `$${item.estimatedCost.toFixed(2)}` : '—'}</span>
-                </div>
-                ${deleteBtnHtml}
-            `;
-
-            // Toggle Events
-            itemEl.addEventListener('click', (e) => {
-                if (e.target.tagName === 'INPUT' || e.target.closest('.delete-grocery-item')) return;
-                const cb = itemEl.querySelector('input');
-                cb.checked = !cb.checked;
-                toggleGroceryChecked(item.index, cb.checked, itemEl);
-            });
-
-            const checkbox = itemEl.querySelector('input');
-            checkbox.addEventListener('change', () => {
-                toggleGroceryChecked(item.index, checkbox.checked, itemEl);
-            });
-
-            // Delete Event
-            if (item.type === 'custom') {
-                const delBtn = itemEl.querySelector('.delete-grocery-item');
-                delBtn.addEventListener('click', () => {
-                    const customIdx = parseInt(item.index.split('-')[1]);
+                deleteBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const customIdx = parseInt(item.index.split('-')[1], 10);
                     removeCustomGroceryItem(customIdx);
                 });
             }
+
+            itemEl.addEventListener('click', (e) => {
+                if (e.target.tagName === 'INPUT' || e.target.closest('.delete-grocery-item')) return;
+                checkbox.checked = !checkbox.checked;
+                toggleGroceryChecked(item.index, checkbox.checked, itemEl);
+            });
+
+            checkbox.addEventListener('change', () => {
+                toggleGroceryChecked(item.index, checkbox.checked, itemEl);
+            });
 
             catEl.appendChild(itemEl);
         });
